@@ -1,0 +1,104 @@
+# yii3-respect-validation
+
+Bridge exposing Respect/Validation rules as native yiisoft/validator rules for Yii3.
+
+## Install
+
+```bash
+composer require rasuvaeff/yii3-respect-validation
+```
+
+## Rules
+
+- `declare(strict_types=1)` in every file.
+- `RespectRule` is `final class` (not readonly) — needs mutable `$skipOnEmpty`/`$skipOnError`/`$when` for clone-based `with*`-style traits shared with native yii3 rules.
+- Requires PHP `>=8.5` (forced by `respect/validation` ^3.1, which dropped 8.3/8.4 support).
+- `RespectRuleHandler` never uses `Respect\Validation\Message\InterpolationRenderer` (needs `symfony/translation-contracts`) — messages are rendered by the handler itself so the whole app stays on one i18n pipeline (`Yiisoft\Translator`).
+- Respect message templates use `{{param}}` (double braces), not ICU `{param}` — never pass them through `yiisoft/validator`'s default (ICU) formatter; use the dedicated `yii3-respect-validation` translation category with `RespectMessageFormatter`.
+- No `@psalm-suppress` — fix the root cause.
+- No JavaScript client-validation runtime is shipped (deliberate scope decision — Respect has ~150 rules, many with arbitrary PHP logic that can't be ported to JS affordably). `RespectRule::getOptions()` only exports metadata, matching how `yiisoft/validator` core itself does client-side export.
+
+## API reference
+
+### RespectRule
+
+```php
+use Rasuvaeff\Yii3RespectValidation\RespectRule;
+use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Length;
+use Respect\Validation\Validators\StringType;
+
+final class RegisterForm
+{
+    #[RespectRule(new AllOf(new StringType(), new Length(1, 50)), skipOnEmpty: true)]
+    public string $username = '';
+}
+```
+
+Constructor: `__construct(Respect\Validation\Validator|Respect\Validation\ValidatorBuilder $validator, bool|callable|null $skipOnEmpty = null, bool $skipOnError = false, ?Closure $when = null)`.
+
+Accepts either a raw `Validator` (e.g. `new AllOf(new StringType(), ...)` — required
+for use directly as a PHP attribute argument, since attribute args must be constant
+expressions) or a `ValidatorBuilder` (what `v::stringType()->length(1, 50)` returns
+— only usable when the rule is built outside the attribute and passed as a variable).
+
+Implements `Yiisoft\Validator\DumpedRuleInterface`, `SkipOnEmptyInterface`,
+`SkipOnErrorInterface`, `WhenInterface` — behaves exactly like a built-in
+`yiisoft/validator` rule in the validation pipeline.
+
+### RespectRuleHandler
+
+```php
+use Rasuvaeff\Yii3RespectValidation\RespectRuleHandler;
+
+new RespectRuleHandler(
+    translator: null,                          // ?Yiisoft\Translator\TranslatorInterface
+    translationCategory: 'yii3-respect-validation',
+);
+```
+
+`validate(mixed $value, RuleInterface $rule, ValidationContext $context): Result`:
+calls `$rule->getValidator()->evaluate($value)`, walks the returned
+`Respect\Validation\Result` tree (`children` for composites like `AllOf`/`OneOf`,
+`adjacent` for chained wrapper messages), and for each failed leaf calls
+`Result::addErrorWithoutPostProcessing($renderedMessage, $parameters, $valuePath)`
+— message is already fully translated+formatted, so the global (ICU) formatter
+must not touch it again.
+
+`$valuePath` is built by walking Respect's own `Path` linked list
+(`$node->path->value`/`->parent`) — e.g. `Each`/`KeySet` attach the failing array
+key there.
+
+`{{subject}}` in Respect templates is filled with
+`$context->getCapitalizedTranslatedProperty()` (same convention native rules use
+for sentence-starting property names).
+
+### RespectMessageFormatter
+
+```php
+use Rasuvaeff\Yii3RespectValidation\RespectMessageFormatter;
+
+(new RespectMessageFormatter())->format('{{subject}} must be a string', ['subject' => 'Name'], 'en');
+// 'Name must be a string'
+```
+
+Implements `Yiisoft\Translator\MessageFormatterInterface`. Plain `strtr()`-based
+`{{key}}` substitution — no ICU, no ordering requirements, unknown placeholders
+left untouched, non-scalar values stringify to `''`.
+
+### DI config (Yii3, config-plugin)
+
+```php
+// config/params.php
+return [
+    'rasuvaeff/yii3-respect-validation' => [
+        'translation.category' => 'yii3-respect-validation',
+    ],
+];
+```
+
+Ships `config/di.php` registering `RespectRuleHandler`'s `translationCategory`
+and a `CategorySource` (tag `translation.categorySource`) using
+`RespectMessageFormatter` + `IdMessageReader` (no bundled translations — add your
+own `messages/<locale>/yii3-respect-validation.php` catalog, keyed by the exact
+`{{param}}` template string, e.g. `'{{subject}} must be a string' => '...'`).
