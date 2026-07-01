@@ -7,6 +7,7 @@ namespace Rasuvaeff\Yii3RespectValidation;
 use Attribute;
 use Closure;
 use ReflectionClass;
+use ReflectionProperty;
 use Respect\Validation\Validator as RespectValidator;
 use Respect\Validation\ValidatorBuilder;
 use UnitEnum;
@@ -21,6 +22,8 @@ use Yiisoft\Validator\WhenInterface;
 
 /**
  * @api
+ *
+ * @psalm-import-type SkipOnEmptyValue from SkipOnEmptyInterface
  */
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::IS_REPEATABLE)]
 final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, SkipOnErrorInterface, WhenInterface
@@ -29,6 +32,13 @@ final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, Sk
     use SkipOnErrorTrait;
     use WhenTrait;
 
+    private bool $skipOnError;
+
+    private ?Closure $when;
+
+    /**
+     * @psalm-param SkipOnEmptyValue $skipOnEmpty
+     */
     public function __construct(
         private readonly RespectValidator|ValidatorBuilder $validator,
         bool|callable|null $skipOnEmpty = null,
@@ -67,51 +77,62 @@ final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, Sk
         ];
     }
 
+    /**
+     * @return array<string, bool|int|float|string|null>
+     */
     private function getValidatorOptions(): array
     {
         // Many Respect validators (e.g. Between, extending Validators\Core\Envelope) store their
         // constructor arguments in a $parameters property, which is the same array Respect uses
         // to fill in {{placeholder}} template text - reusing it here avoids per-rule mapping.
-        $reflection = new ReflectionClass($this->validator);
+        // $parameters is private on Envelope itself, so it must be looked up through the parent
+        // chain: ReflectionClass::hasProperty() does not see private properties of ancestor classes.
+        $property = $this->findParametersProperty(new ReflectionClass($this->validator));
 
-        if (!$reflection->hasProperty('parameters')) {
+        if ($property === null) {
             return [];
         }
 
-        $parameters = $reflection->getProperty('parameters')->getValue($this->validator);
+        $parameters = $property->getValue($this->validator);
 
         if (!is_array($parameters)) {
             return [];
         }
 
         $options = [];
-        foreach ($parameters as $name => $value) {
-            if (!is_string($name) || !$this->isSerializable($value)) {
+        foreach (array_keys($parameters) as $name) {
+            if (!is_string($name)) {
                 continue;
             }
 
-            $options[$name] = $value instanceof UnitEnum ? $value->name : $value;
+            $options[$name] = $this->normalizeOptionValue($parameters[$name]);
         }
 
         return $options;
     }
 
-    private function isSerializable(mixed $value): bool
+    /**
+     * @template T of object
+     *
+     * @param ReflectionClass<T> $reflection
+     */
+    private function findParametersProperty(ReflectionClass $reflection): ?ReflectionProperty
     {
-        if ($value === null || is_scalar($value) || $value instanceof UnitEnum) {
-            return true;
+        if ($reflection->hasProperty('parameters')) {
+            return $reflection->getProperty('parameters');
         }
 
-        if (!is_array($value)) {
-            return false;
+        $parent = $reflection->getParentClass();
+
+        return $parent === false ? null : $this->findParametersProperty($parent);
+    }
+
+    private function normalizeOptionValue(mixed $value): bool|int|float|string|null
+    {
+        if ($value === null || is_scalar($value)) {
+            return $value;
         }
 
-        foreach ($value as $item) {
-            if ($item !== null && !is_scalar($item)) {
-                return false;
-            }
-        }
-
-        return true;
+        return $value instanceof UnitEnum ? $value->name : null;
     }
 }

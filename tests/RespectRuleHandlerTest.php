@@ -8,6 +8,7 @@ use Rasuvaeff\Yii3RespectValidation\RespectMessageFormatter;
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Rasuvaeff\Yii3RespectValidation\RespectRuleHandler;
 use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Between;
 use Respect\Validation\Validators\Each;
 use Respect\Validation\Validators\IntType;
 use Respect\Validation\Validators\Length;
@@ -61,12 +62,22 @@ final class RespectRuleHandlerTest
 
     public function allOfCollectsOneMessagePerFailedChild(): void
     {
-        $rule = new RespectRule(new AllOf(new StringType(), new Length(1, 5)));
+        $rule = new RespectRule(new AllOf(new StringType(), new Length(new Between(1, 5))));
 
         $result = $this->handler->validate(123, $rule, new ValidationContext());
 
         Assert::false($result->isValid());
-        Assert::same($result->getErrorMessages(), ['Value must be a string']);
+        Assert::same($result->getErrorMessages(), ['Value must be a string', 'Value must be countable or a string']);
+    }
+
+    public function chainedWrapperSkipsItsOwnFragmentTemplate(): void
+    {
+        $rule = new RespectRule(new Length(new Between(1, 5)));
+
+        $result = $this->handler->validate('abcdef', $rule, new ValidationContext());
+
+        Assert::false($result->isValid());
+        Assert::same($result->getErrorMessages(), ['Value must be between 1 and 5']);
     }
 
     public function eachAttachesValuePathFromRespect(): void

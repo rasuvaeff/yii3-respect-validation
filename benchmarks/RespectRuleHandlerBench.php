@@ -6,8 +6,12 @@ namespace Rasuvaeff\Yii3RespectValidation\Benchmarks;
 
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Rasuvaeff\Yii3RespectValidation\RespectRuleHandler;
+use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Alnum;
+use Respect\Validation\Validators\Between;
+use Respect\Validation\Validators\Length;
+use Respect\Validation\Validators\StringType;
 use Testo\Bench;
-use v;
 use Yiisoft\Validator\ValidationContext;
 
 final class RespectRuleHandlerBench
@@ -22,7 +26,7 @@ final class RespectRuleHandlerBench
     public static function validateSingleRule(): void
     {
         $handler = new RespectRuleHandler();
-        $rule = new RespectRule(v::stringType());
+        $rule = new RespectRule(new StringType());
 
         $handler->validate('some value', $rule, new ValidationContext());
     }
@@ -31,7 +35,7 @@ final class RespectRuleHandlerBench
     {
         $handler = new RespectRuleHandler();
         $rule = new RespectRule(
-            v::stringType()->length(1, 50)->alnum()->notEmpty(),
+            new AllOf(new StringType(), new Length(new Between(1, 50)), new Alnum()),
         );
 
         $handler->validate('some value', $rule, new ValidationContext());

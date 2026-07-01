@@ -16,8 +16,8 @@ final readonly class RespectMessageFormatter implements MessageFormatterInterfac
     public function format(string $message, array $parameters, string $locale): string
     {
         $replacements = [];
-        foreach ($parameters as $name => $value) {
-            $replacements['{{' . $name . '}}'] = $this->stringify($value);
+        foreach (array_keys($parameters) as $name) {
+            $replacements['{{' . $name . '}}'] = $this->stringify($parameters[$name]);
         }
 
         return strtr($message, $replacements);

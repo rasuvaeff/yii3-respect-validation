@@ -25,12 +25,13 @@ composer require rasuvaeff/yii3-respect-validation
 ```php
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Between;
 use Respect\Validation\Validators\Length;
 use Respect\Validation\Validators\StringType;
 
 final class RegisterForm
 {
-    #[RespectRule(new AllOf(new StringType(), new Length(1, 50)), skipOnEmpty: true)]
+    #[RespectRule(new AllOf(new StringType(), new Length(new Between(1, 50))), skipOnEmpty: true)]
     public string $username = '';
 }
 ```
@@ -39,8 +40,12 @@ Constructor: `__construct(Respect\Validation\Validator|Respect\Validation\Valida
 
 Accepts either a raw `Validator` (e.g. `new AllOf(new StringType(), ...)` — required
 for use directly as a PHP attribute argument, since attribute args must be constant
-expressions) or a `ValidatorBuilder` (what `v::stringType()->length(1, 50)` returns
-— only usable when the rule is built outside the attribute and passed as a variable).
+expressions) or a `ValidatorBuilder` (what `v::stringType()` returns — only usable
+when the rule is built outside the attribute and passed as a variable). Note:
+`Length` wraps another `Validator` (e.g. `Between`) to check against the extracted
+length — it does not take `min`/`max` directly, and the `v::` fluent sugar for it
+(`->length(min, max)`) does not auto-wrap into `Between` either; always build
+`new Length(new Between($min, $max))` explicitly.
 
 Implements `Yiisoft\Validator\DumpedRuleInterface`, `SkipOnEmptyInterface`,
 `SkipOnErrorInterface`, `WhenInterface` — behaves exactly like a built-in

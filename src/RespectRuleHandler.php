@@ -7,6 +7,7 @@ namespace Rasuvaeff\Yii3RespectValidation;
 use InvalidArgumentException;
 use Respect\Validation\Message\TemplateRegistry;
 use Respect\Validation\Result as RespectResult;
+use Stringable;
 use Yiisoft\Translator\TranslatorInterface;
 use Yiisoft\Validator\Exception\UnexpectedRuleException;
 use Yiisoft\Validator\Result;
@@ -36,9 +37,15 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
         $result = new Result();
 
         foreach ($this->collectFailures($rule->getValidator()->evaluate($value)) as $failure) {
+            $parameters = $this->normalizeParameters([
+                ...$failure->parameters,
+                'subject' => $context->getCapitalizedTranslatedProperty(),
+                'input' => $failure->input,
+            ]);
+
             $result->addErrorWithoutPostProcessing(
-                $this->renderMessage($failure, $context),
-                $failure->parameters,
+                $this->renderMessage($failure, $parameters),
+                $parameters,
                 $this->buildValuePath($failure),
             );
         }
@@ -55,17 +62,28 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
             return;
         }
 
-        if ($node->children === []) {
-            yield $node;
-        } else {
+        if ($node->children !== []) {
             foreach ($node->children as $child) {
                 yield from $this->collectFailures($child);
             }
+
+            return;
         }
 
-        if ($node->adjacent !== null) {
-            yield from $this->collectFailures($node->adjacent);
+        if ($node->adjacent === null) {
+            yield $node;
+
+            return;
         }
+
+        // A non-custom template (e.g. Length's own "The length of" wrapper text) is a sentence
+        // fragment meant to precede the adjacent result's message, not stand on its own - skip it
+        // and surface only the adjacent (more specific) failure instead.
+        if ($node->hasCustomTemplate()) {
+            yield $node;
+        }
+
+        yield from $this->collectFailures($node->adjacent);
     }
 
     /**
@@ -83,14 +101,40 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
         return $path;
     }
 
-    private function renderMessage(RespectResult $node, ValidationContext $context): string
+    /**
+     * @param array<array-key, mixed> $parameters
+     *
+     * @return array<string, bool|int|float|string|null>
+     */
+    private function normalizeParameters(array $parameters): array
+    {
+        $normalized = [];
+        foreach (array_keys($parameters) as $name) {
+            if (!is_string($name)) {
+                continue;
+            }
+
+            $normalized[$name] = $this->normalizeParameterValue($parameters[$name]);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeParameterValue(mixed $value): bool|int|float|string|null
+    {
+        return match (true) {
+            $value === null, is_scalar($value) => $value,
+            $value instanceof Stringable => (string) $value,
+            default => null,
+        };
+    }
+
+    /**
+     * @param array<string, bool|int|float|string|null> $parameters
+     */
+    private function renderMessage(RespectResult $node, array $parameters): string
     {
         $template = $this->resolveTemplate($node);
-        $parameters = [
-            ...$node->parameters,
-            'subject' => $context->getCapitalizedTranslatedProperty(),
-            'input' => $node->input,
-        ];
 
         if ($this->translator === null) {
             return $this->fallbackFormatter->format($template, $parameters, 'en');

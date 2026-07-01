@@ -36,12 +36,13 @@ composer require rasuvaeff/yii3-respect-validation
 ```php
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Between;
 use Respect\Validation\Validators\Length;
 use Respect\Validation\Validators\StringType;
 
 final class RegisterForm
 {
-    #[RespectRule(new AllOf(new StringType(), new Length(1, 50)))]
+    #[RespectRule(new AllOf(new StringType(), new Length(new Between(1, 50))))]
     public string $username = '';
 }
 ```
@@ -52,7 +53,7 @@ use Yiisoft\Validator\Validator;
 $result = (new Validator())->validate(new RegisterForm());
 
 $result->isValid();                          // false
-$result->getPropertyErrorMessages('username'); // ['Username must contain at most 50 characters']
+$result->getPropertyErrorMessages('username'); // ['Username must be between 1 and 50']
 ```
 
 `v::` fluent chains work too, since `RespectRule` accepts either a
@@ -60,11 +61,11 @@ $result->getPropertyErrorMessages('username'); // ['Username must contain at mos
 (what `v::` returns):
 
 ```php
-#[RespectRule(new AllOf(new StringType(), new Length(1, 50)))]
+#[RespectRule(new StringType())]
 public string $username = '';
 
 // equivalent, built at runtime instead of in the attribute:
-$rule = new RespectRule(v::stringType()->length(1, 50));
+$rule = new RespectRule(v::stringType());
 ```
 
 > PHP attribute arguments must be constant expressions, so only rule chains built

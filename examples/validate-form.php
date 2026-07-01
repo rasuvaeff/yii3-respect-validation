@@ -6,6 +6,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Respect\Validation\Validators\AllOf;
+use Respect\Validation\Validators\Between;
 use Respect\Validation\Validators\Length;
 use Respect\Validation\Validators\StringType;
 use Yiisoft\Validator\Validator;
@@ -13,7 +14,7 @@ use Yiisoft\Validator\Validator;
 final class RegisterForm
 {
     public function __construct(
-        #[RespectRule(new AllOf(new StringType(), new Length(1, 20)))]
+        #[RespectRule(new AllOf(new StringType(), new Length(new Between(1, 20))))]
         public string $username = '',
     ) {}
 }
