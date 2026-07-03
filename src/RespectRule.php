@@ -15,7 +15,6 @@ use Yiisoft\Validator\DumpedRuleInterface;
 use Yiisoft\Validator\Rule\Trait\SkipOnEmptyTrait;
 use Yiisoft\Validator\Rule\Trait\SkipOnErrorTrait;
 use Yiisoft\Validator\Rule\Trait\WhenTrait;
-use Yiisoft\Validator\RuleHandlerInterface;
 use Yiisoft\Validator\SkipOnEmptyInterface;
 use Yiisoft\Validator\SkipOnErrorInterface;
 use Yiisoft\Validator\WhenInterface;
@@ -32,22 +31,16 @@ final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, Sk
     use SkipOnErrorTrait;
     use WhenTrait;
 
-    private bool $skipOnError;
-
-    private ?Closure $when;
-
     /**
      * @psalm-param SkipOnEmptyValue $skipOnEmpty
      */
     public function __construct(
         private readonly RespectValidator|ValidatorBuilder $validator,
         bool|callable|null $skipOnEmpty = null,
-        bool $skipOnError = false,
-        ?Closure $when = null,
+        private bool $skipOnError = false,
+        private ?Closure $when = null,
     ) {
         $this->skipOnEmpty = $skipOnEmpty;
-        $this->skipOnError = $skipOnError;
-        $this->when = $when;
     }
 
     public function getValidator(): RespectValidator|ValidatorBuilder
@@ -56,7 +49,7 @@ final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, Sk
     }
 
     #[\Override]
-    public function getHandler(): string|RuleHandlerInterface
+    public function getHandler(): string
     {
         return RespectRuleHandler::class;
     }
@@ -89,7 +82,7 @@ final class RespectRule implements DumpedRuleInterface, SkipOnEmptyInterface, Sk
         // chain: ReflectionClass::hasProperty() does not see private properties of ancestor classes.
         $property = $this->findParametersProperty(new ReflectionClass($this->validator));
 
-        if ($property === null) {
+        if (!$property instanceof \ReflectionProperty) {
             return [];
         }
 

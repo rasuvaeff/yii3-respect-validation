@@ -70,7 +70,7 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
             return;
         }
 
-        if ($node->adjacent === null) {
+        if (!$node->adjacent instanceof \Respect\Validation\Result) {
             yield $node;
 
             return;
@@ -93,7 +93,7 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
     {
         $path = [];
         $current = $node->path;
-        while ($current !== null) {
+        while ($current instanceof \Respect\Validation\Path) {
             array_unshift($path, $current->value);
             $current = $current->parent;
         }
@@ -136,7 +136,7 @@ final readonly class RespectRuleHandler implements RuleHandlerInterface
     {
         $template = $this->resolveTemplate($node);
 
-        if ($this->translator === null) {
+        if (!$this->translator instanceof \Yiisoft\Translator\TranslatorInterface) {
             return $this->fallbackFormatter->format($template, $parameters, 'en');
         }
 

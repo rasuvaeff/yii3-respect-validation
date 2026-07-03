@@ -72,6 +72,34 @@ $rule = new RespectRule(v::stringType());
 > from `new Validator(...)` calls work directly in `#[RespectRule(...)]`. `v::`
 > chains need to be built outside the attribute and passed to the constructor.
 
+### Fluent `v::` chains on a model: `RulesProviderInterface`
+
+To keep the fluent `v::` API without giving up per-model rule declarations,
+implement `Yiisoft\Validator\RulesProviderInterface` instead of attributes —
+`getRules()` is ordinary runtime code, so any chain works there:
+
+```php
+use Respect\Validation\Validator as v;
+use Yiisoft\Validator\RulesProviderInterface;
+
+final class RegisterForm implements RulesProviderInterface
+{
+    public string $username = '';
+    public string $email = '';
+
+    public function getRules(): iterable
+    {
+        return [
+            'username' => new RespectRule(v::stringType()->length(v::between(1, 50))),
+            'email' => new RespectRule(v::email()),
+        ];
+    }
+}
+```
+
+Both styles produce identical results and can be mixed: attributes for simple
+`new`-constructible chains, `getRules()` where the fluent builder is worth it.
+
 ### Skip / conditional validation
 
 `RespectRule` implements the same `SkipOnEmptyInterface` / `SkipOnErrorInterface` /
@@ -90,14 +118,27 @@ needs `symfony/translation-contracts`) — so the whole app keeps a single i18n
 pipeline: `Yiisoft\Translator`.
 
 By default (no `TranslatorInterface` wired), messages are rendered in English via
-`RespectMessageFormatter`. To translate them through your app's translator, wire
-the category via `config-plugin` (already shipped by this package, see
-[DI configuration](#di-configuration-yii3)) and add your own catalog:
+`RespectMessageFormatter`.
+
+**A complete Russian catalog ships with the package** (`messages/ru/`, all ~310
+Respect template strings). To activate it, install the PHP message reader and set
+the application locale to `ru` — the shipped `config/di.php` picks it up
+automatically:
+
+```bash
+composer require yiisoft/translator-message-php
+```
+
+A build-time test (`RussianMessageCatalogTest`) pins every catalog key to the
+installed `respect/validation` templates, so an upstream wording change turns CI
+red instead of silently dropping translations.
+
+For other locales, add your own catalog next to the app (same category):
 
 ```php
-// messages/ru/yii3-respect-validation.php
+// messages/de/yii3-respect-validation.php
 return [
-    '{{subject}} must be a string' => '{{subject}} должно быть строкой',
+    '{{subject}} must be a string' => '{{subject}} muss eine Zeichenkette sein',
 ];
 ```
 
@@ -109,6 +150,10 @@ wired with a dedicated translation category (`yii3-respect-validation`) using a
 `{{placeholder}}`-aware `RespectMessageFormatter` (Respect templates use double
 braces, not the ICU syntax the rest of `yiisoft/validator` uses — mixing the two
 under one formatter would break placeholder substitution for one of them).
+
+The category reads the bundled `messages/{locale}` catalogs when
+`yiisoft/translator-message-php` is installed; without it, messages pass through
+untranslated (English template text).
 
 Override the category name in your application config if needed:
 

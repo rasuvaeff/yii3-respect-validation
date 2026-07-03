@@ -20,6 +20,7 @@ use Testo\Lifecycle\BeforeTest;
 use Testo\Test;
 use Yiisoft\Translator\CategorySource;
 use Yiisoft\Translator\IdMessageReader;
+use Yiisoft\Translator\Message\Php\MessageSource;
 use Yiisoft\Translator\Translator;
 use Yiisoft\Validator\Exception\UnexpectedRuleException;
 use Yiisoft\Validator\ValidationContext;
@@ -105,6 +106,24 @@ final class RespectRuleHandlerTest
 
         Assert::false($result->isValid());
         Assert::same($result->getErrorMessages(), ['Value must be a string']);
+    }
+
+    public function shippedRussianCatalogRendersTranslatedMessage(): void
+    {
+        $translator = new Translator(locale: 'ru');
+        $translator->addCategorySources(new CategorySource(
+            'yii3-respect-validation',
+            new MessageSource(dirname(__DIR__) . '/messages'),
+            new RespectMessageFormatter(),
+        ));
+
+        $handler = new RespectRuleHandler(translator: $translator, translationCategory: 'yii3-respect-validation');
+
+        $context = (new ValidationContext())->setPropertyLabel('username');
+        $result = $handler->validate(123, new RespectRule(new StringType()), $context);
+
+        Assert::false($result->isValid());
+        Assert::same($result->getErrorMessages(), ['Значение «Username» должно быть строкой']);
     }
 
     public function throwsOnUnexpectedRule(): void

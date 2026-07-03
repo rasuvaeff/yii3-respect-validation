@@ -36,7 +36,11 @@
         "roave/backward-compatibility-check": "^8.0",
         "testo/bridge-infection": "^0.1.6",
         "testo/testo": "^0.10.25",
-        "vimeo/psalm": "^6.16"
+        "vimeo/psalm": "^6.16",
+        "yiisoft/translator-message-php": "^1.1"
+    },
+    "suggest": {
+        "yiisoft/translator-message-php": "Enables the bundled messages/{locale} translation catalogs (ru) via MessageSource"
     },
     "autoload": {
         "psr-4": {

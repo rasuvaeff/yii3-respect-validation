@@ -104,6 +104,9 @@ return [
 
 Ships `config/di.php` registering `RespectRuleHandler`'s `translationCategory`
 and a `CategorySource` (tag `translation.categorySource`) using
-`RespectMessageFormatter` + `IdMessageReader` (no bundled translations — add your
-own `messages/<locale>/yii3-respect-validation.php` catalog, keyed by the exact
-`{{param}}` template string, e.g. `'{{subject}} must be a string' => '...'`).
+`RespectMessageFormatter`. The reader is `MessageSource` over the bundled
+`messages/{locale}` catalogs (full Russian catalog included) when
+`yiisoft/translator-message-php` is installed, falling back to `IdMessageReader`
+(untranslated English) otherwise. Extra locales: add your own
+`messages/<locale>/yii3-respect-validation.php` catalog, keyed by the exact
+`{{param}}` template string, e.g. `'{{subject}} must be a string' => '...'`.
