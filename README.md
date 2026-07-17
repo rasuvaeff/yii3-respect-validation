@@ -7,6 +7,7 @@
 [![Psalm level](https://img.shields.io/badge/psalm-level%201-141F48?logo=psalm&logoColor=white)](https://github.com/rasuvaeff/yii3-respect-validation/blob/master/psalm.xml)
 [![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/yii3-respect-validation/php)](https://packagist.org/packages/rasuvaeff/yii3-respect-validation)
 [![License](https://img.shields.io/packagist/l/rasuvaeff/yii3-respect-validation)](LICENSE.md)
+[Русская версия](README.ru.md)
 
 Bridge exposing [Respect/Validation](https://github.com/Respect/Validation) rules as
 native `yiisoft/validator` rules — usable as a `#[RespectRule]` attribute on a
