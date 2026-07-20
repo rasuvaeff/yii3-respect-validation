@@ -1,4 +1,5 @@
 # rasuvaeff/yii3-respect-validation
+
 [![Stable Version](https://img.shields.io/packagist/v/rasuvaeff/yii3-respect-validation?label=stable&sort_semver=1)](https://packagist.org/packages/rasuvaeff/yii3-respect-validation)
 [![Total Downloads](https://img.shields.io/packagist/dt/rasuvaeff/yii3-respect-validation)](https://packagist.org/packages/rasuvaeff/yii3-respect-validation)
 [![Build](https://img.shields.io/github/actions/workflow/status/rasuvaeff/yii3-respect-validation/build.yml?branch=master)](https://github.com/rasuvaeff/yii3-respect-validation/actions)
@@ -6,25 +7,34 @@
 [![Psalm level](https://img.shields.io/badge/psalm-level%201-141F48?logo=psalm&logoColor=white)](https://github.com/rasuvaeff/yii3-respect-validation/blob/master/psalm.xml)
 [![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/yii3-respect-validation/php)](https://packagist.org/packages/rasuvaeff/yii3-respect-validation)
 [![License](https://img.shields.io/packagist/l/rasuvaeff/yii3-respect-validation)](LICENSE.md)
-Bridge exposing [Respect/Validation](https://github.com/Respect/Validation) rules as
-собственные правила `yiisoft/validator` — можно использовать как атрибут `#[RespectRule]` в свойстве
- `FormModel`/DTO, наряду со встроенными правилами Yii3, при этом результаты проходят через
- тот же конвейер `Result`/`Yiisoft\Translator`.
+[English version](README.md)
 
- > **Используете помощника по кодированию с использованием искусственного интеллекта?** [llms.txt](llms.txt) содержит компактную ссылку
- > API, которой вы можете поделиться с моделью. Авторы: см. [AGENTS.md](AGENTS.md). @@ЛИНИЯ@@
+Мост, представляющий правила [Respect/Validation](https://github.com/Respect/Validation)
+как нативные правила `yiisoft/validator` — можно использовать как атрибут
+`#[RespectRule]` на свойстве `FormModel`/DTO рядом со встроенными правилами Yii3,
+при этом результаты проходят через тот же конвейер `Result`/`Yiisoft\Translator`.
+
+> **Используете AI-ассистента?** В [llms.txt](llms.txt) — компактный
+> API-справочник, которым можно поделиться с моделью. Контрибьюторам: см.
+> [AGENTS.md](AGENTS.md).
+
 ## Требования
+
 | Требование | Версия |
- |-------------|---------|
- | PHP | `>=8.5` (требуется `respect/validation` ^3.1) |
- | `уважение/подтверждение` | `^3.1` |
- | `yiisoft/валидатор` | `^2,6` |
- | `yiisoft/переводчик` | `^3.0` | @@ЛИНИЯ@@
+|-------------|---------|
+| PHP | `>=8.5` (требуется `respect/validation` ^3.1) |
+| `respect/validation` | `^3.1` |
+| `yiisoft/validator` | `^2.6` |
+| `yiisoft/translator` | `^3.0` |
+
 ## Установка
+
 ```bash
 composer require rasuvaeff/yii3-respect-validation
 ```
+
 ## Использование
+
 ```php
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Respect\Validation\Validators\AllOf;
@@ -38,6 +48,7 @@ final class RegisterForm
     public string $username = '';
 }
 ```
+
 ```php
 use Yiisoft\Validator\Validator;
 
@@ -46,9 +57,10 @@ $result = (new Validator())->validate(new RegisterForm());
 $result->isValid();                          // false
 $result->getPropertyErrorMessages('username'); // ['Username must be between 1 and 50']
 ```
-Свободные цепочки `v::` также работают, поскольку `RespectRule` принимает либо экземпляр
- `Respect\Validation\Validator`, либо `Respect\Validation\ValidatorBuilder`
- (что возвращает `v::`):
+
+Fluent-цепочки `v::` тоже работают, поскольку `RespectRule` принимает как
+экземпляр `Respect\Validation\Validator`, так и `Respect\Validation\ValidatorBuilder`
+(то, что возвращает `v::`):
 
 ```php
 #[RespectRule(new StringType())]
@@ -57,13 +69,17 @@ public string $username = '';
 // equivalent, built at runtime instead of in the attribute:
 $rule = new RespectRule(v::stringType());
 ```
-> Аргументы атрибутов PHP должны быть постоянными выражениями, поэтому только цепочки правил, построенные
- > из вызовов `new Validator(...)`, работают непосредственно в `#[RespectRule(...)]`. `v::`
- > цепочки необходимо строить вне атрибута и передавать конструктору. @@ЛИНИЯ@@
-### Свободные цепочки `v::` в модели: `RulesProviderInterface`
-Чтобы сохранить свободный API `v::`, не отказываясь от объявлений правил для каждой модели,
- реализуйте `Yiisoft\Validator\RulesProviderInterface` вместо атрибутов —
- `getRules()` — это обычный код времени выполнения, поэтому здесь работает любая цепочка:
+
+> Аргументы PHP-атрибутов должны быть константными выражениями, поэтому внутри
+> `#[RespectRule(...)]` работают только цепочки, собранные из вызовов
+> `new Validator(...)`. Цепочки `v::` нужно строить вне атрибута и передавать в
+> конструктор.
+
+### Fluent-цепочки `v::` на модели: `RulesProviderInterface`
+
+Чтобы сохранить fluent-API `v::`, не отказываясь от объявления правил на уровне
+модели, реализуйте `Yiisoft\Validator\RulesProviderInterface` вместо атрибутов —
+`getRules()` это обычный runtime-код, где работает любая цепочка:
 
 ```php
 use Respect\Validation\Validator as v;
@@ -83,38 +99,45 @@ final class RegisterForm implements RulesProviderInterface
     }
 }
 ```
-Оба стиля дают одинаковые результаты и могут быть смешаны: атрибуты для простых
- `новых`-конструируемых цепочек, `getRules()`, где того стоит беглый конструктор. @@ЛИНИЯ@@
-### Пропустить/условную проверку
-`RespectRule` реализует те же контракты `SkipOnEmptyInterface` / `SkipOnErrorInterface` /
- `WhenInterface`, как и встроенные правила:
+
+Оба стиля дают идентичные результаты и могут смешиваться: атрибуты — для
+простых цепочек, конструируемых через `new`, `getRules()` — там, где fluent-API
+оправдан.
+
+### Пропуск / условная валидация
+
+`RespectRule` реализует те же контракты `SkipOnEmptyInterface` /
+`SkipOnErrorInterface` / `WhenInterface`, что и встроенные правила:
 
 ```php
 #[RespectRule(new StringType(), skipOnEmpty: true, skipOnError: true)]
 public string $bio = '';
 ```
+
 ### Сообщения и перевод
-Собственные шаблоны сообщений Respect (например, `{{subject}} должно быть строкой`) обрабатываются
- самим обработчиком, а не внутренним `InterpolationRenderer` Respect (которому
- нужны `symfony/translation-contracts`) — поэтому все приложение поддерживает один i18n
- конвейер: `Yiisoft\Translator`.
 
- По умолчанию (без проводного `TranslatorInterface`) сообщения отображаются на английском языке через
- `RespectMessageFormatter`.
+Собственные шаблоны сообщений Respect (например, `{{subject}} must be a string`)
+рендерятся самим хендлером, а не внутренним `InterpolationRenderer` из Respect
+(ему нужен `symfony/translation-contracts`) — поэтому во всём приложении остаётся
+единый i18n-конвейер: `Yiisoft\Translator`.
 
- **В комплекте поставляется полный русский каталог** (`messages/ru/`, всего ~310
- Соблюдайте шаблонные строки). Чтобы активировать его, установите программу чтения сообщений PHP и установите
- локаль приложения на `ru` — поставляемый `config/di.php` подберет ее
- автоматически:
+По умолчанию (без подключённого `TranslatorInterface`) сообщения рендерятся на
+английском через `RespectMessageFormatter`.
+
+**С пакетом поставляется полный русский каталог** (`messages/ru/`, все ~310
+строк шаблонов Respect). Чтобы активировать его, установите PHP-message-reader и
+задайте приложению локаль `ru` — поставляемый `config/di.php` подхватит её
+автоматически:
 
 ```bash
 composer require yiisoft/translator-message-php
 ```
-Тест во время сборки (`russianMessageCatalogTest`) привязывает каждый ключ каталога к установленным
- шаблонам `respect/validation`, поэтому изменение формулировки в восходящем направлении окрашивает CI
- в красный цвет вместо того, чтобы молча удалять переводы.
 
- Для других языков добавьте собственный каталог рядом с приложением (той же категории):
+Сборочный тест (`RussianMessageCatalogTest`) привязывает каждый ключ каталога к
+шаблонам установленного `respect/validation`, поэтому upstream-изменение формулировок
+краснит CI вместо того, чтобы молча потерять перевод.
+
+Для других локалей добавьте свой каталог рядом с приложением (та же категория):
 
 ```php
 // messages/de/yii3-respect-validation.php
@@ -122,19 +145,22 @@ return [
     '{{subject}} must be a string' => '{{subject}} muss eine Zeichenkette sein',
 ];
 ```
-### Конфигурация DI (Yii3)
-Этот пакет поставляется `config/di.php` + `config/params.php` через `config-plugin` —
-, установив его вместе с `yiisoft/config`, достаточно, чтобы получить `RespectRuleHandler`
- с выделенной категорией перевода (`yii3-respect-validation`) с помощью
- `{{placeholder}}`, поддерживающего `{{placeholder}}` RespectMessageFormatter` (шаблоны Respect используют double фигурные скобки
-, а не синтаксис ICU, который использует остальная часть `yiisoft/validator` — смешивание двух
- в одном форматере приведет к нарушению замены заполнителя для одного из них).
 
- Категория читает связанные каталоги `messages/{locale}`, когда
- установлен `yiisoft/translator-message-php`; без него сообщения проходят через
- без перевода (текст шаблона на английском языке).
+### DI-конфигурация (Yii3)
 
- При необходимости переопределите имя категории в конфигурации вашего приложения:
+Пакет поставляет `config/di.php` + `config/params.php` через `config-plugin` —
+его установки рядом с `yiisoft/config` достаточно, чтобы `RespectRuleHandler`
+получил выделенную категорию перевода (`yii3-respect-validation`) с
+учитывающим `{{placeholder}}` `RespectMessageFormatter` (шаблоны Respect
+используют двойные фигурные скобки, а не ICU-синтаксис, как остальной
+`yiisoft/validator` — смешивание их под одним форматером сломало бы подстановку
+плейсхолдеров у одного из них).
+
+Категория читает bundled-каталоги `messages/{locale}`, когда установлен
+`yiisoft/translator-message-php`; без него сообщения проходят без перевода
+(английский текст шаблона).
+
+При необходимости переопределите имя категории в конфиге приложения:
 
 ```php
 // config/params.php
@@ -144,51 +170,67 @@ return [
     ],
 ];
 ```
+
 ## Компоненты
+
 ### `RespectRule`
-| Параметр | Тип | По умолчанию | Описание |
- |-----------|------|---------|-------------|
- | `валидатор` | `Respect\Validation\Validator\|Respect\Validation\ValidatorBuilder` | — | Обернутое правило/цепочка уважения. |
- | `skipOnEmpty` | `bool\|callable\|null` | `ноль` | Пропустить пустое, см. SkipOnEmptyInterface. |
- | `skipOnError` | `бул` | `ложь` | Пропустить предыдущую ошибку, см. SkipOnErrorInterface. |
- | `когда` | `?Закрытие` | `ноль` | Условное выполнение, см. «WhenInterface». |
 
- `getOptions()` (для экспорта метаданных на стороне клиента/интерфейса, согласно
- `DumpedRuleInterface`) возвращает собственное свойство `$parameters` завернутого валидатора
-, если оно присутствует (например, `Between` предоставляет `minValue`/`maxValue` — те же значения, которые
- Respect использует для заполнения своих собственных шаблонов), плюс `skipOnEmpty`/`skipOnError`.
- **Среда выполнения JavaScript не поставляется** — Respect имеет около 150 правил, многие из которых кодируют произвольную логику PHP
- (контрольные суммы Луна, проверки с учетом локали, замыкания `Callback`);
- портировать их все на JS нереально, поэтому этот пакет ограничивает сам
- тем же механизмом экспорта метаданных, который использует сам `yiisoft/validator`. @@ЛИНИЯ@@
+| Параметр | Тип | По умолчанию | Описание |
+|-----------|------|---------|-------------|
+| `validator` | `Respect\Validation\Validator\|Respect\Validation\ValidatorBuilder` | — | Обёрнутое правило/цепочка Respect. |
+| `skipOnEmpty` | `bool\|callable\|null` | `null` | Пропуск при пустом значении, см. `SkipOnEmptyInterface`. |
+| `skipOnError` | `bool` | `false` | Пропуск при наличии предыдущей ошибки, см. `SkipOnErrorInterface`. |
+| `when` | `?Closure` | `null` | Условное выполнение, см. `WhenInterface`. |
+
+`getOptions()` (для экспорта метаданных frontend/клиентской стороны, согласно
+`DumpedRuleInterface`) возвращает собственное свойство `$parameters` обёрнутого
+валидатора, если оно есть (например, `Between` открывает `minValue`/`maxValue` —
+те же значения, что Respect использует для своих шаблонов), плюс
+`skipOnEmpty`/`skipOnError`. **JS-runtime не поставляется** — у Respect около
+150 правил, многие из них кодируют произвольную PHP-логику (контрольные суммы
+Льюна, локаль-зависимые проверки, `Callback`-замыкания); портировать их все на
+JS нереалистично в поддерживаемом виде, поэтому пакет ограничивается тем же
+механизмом экспорта метаданных, что использует сам `yiisoft/validator`.
+
 ### `RespectRuleHandler`
+
 | Параметр | Тип | По умолчанию | Описание |
- |-----------|------|---------|-------------|
- | `переводчик` | `?Yiisoft\Translator\TranslatorInterface` | `ноль` | Если `null`, происходит прямой возврат к `RespectMessageFormatter` (только на английском языке). |
- | `Категория перевода` | `строка` | `'yii3-уважение-проверка'` | Категория была найдена на `$translator`. |
+|-----------|------|---------|-------------|
+| `translator` | `?Yiisoft\Translator\TranslatorInterface` | `null` | Если `null` — прямой фоллбэк на `RespectMessageFormatter` (только английский). |
+| `translationCategory` | `string` | `'yii3-respect-validation'` | Категория, запрашиваемая у `$translator`. |
 
- Обходит дерево `Respect\Validation\Result`, возвращаемое `evaluate()`, и выдает одну ошибку
- `Yiisoft\Validator\Result` для каждого неудачного листа (и для каждого неудачного `смежного` сообщения
-), каждое со своим собственным `valuePath`, построенным на основе собственного вложенного `Path`
- Respect (например, неудачные ключи массива в `Each`/`KeySet`). @@ЛИНИЯ@@
+Обходит дерево `Respect\Validation\Result`, возвращаемое `evaluate()`, и эмитит
+одну ошибку `Yiisoft\Validator\Result` на каждый провалившийся лист (и на каждое
+провалившееся `adjacent`-сообщение), каждое со своим `valuePath`, собранным из
+собственного вложенного `Path` Respect (например, провалившиеся ключи массива
+под `Each`/`KeySet`).
+
 ### `RespectMessageFormatter`
-Реализация `Yiisoft\Translator\MessageFormatterInterface`, заменяющая
- собственный синтаксис заполнителя `{{param}}` Respect (не ICU). Зарегистрируйте его в
- `Yiisoft\Translator\CategorySource` — см. [конфигурация DI](#di-configuration-yii3). @@ЛИНИЯ@@
-## Безопасность
-- Никакой пользовательский ввод никогда не интерполируется во что-либо выполняемое — этот пакет только
- перемещает данные между двумя структурами результатов проверки (деревом `Result` Respect и `Result`
- Yii3); он сам не выполняет ввод-вывод, SQL или доступ к оболочке.
- - `RespectMessageFormatter` выполняет только замену строки `{{key}}`
- (`strtr()`) — никогда `eval`/`preg_replace` с модификатором `/e` или подобным. @@ЛИНИЯ@@
-## Примеры
-См. [examples/](examples/) для работоспособного сценария.
 
- | Скрипт | Шоу | Нужен сервер? |
- |--------|-------|:-------------:|
- | [`validate-form.php`](examples/validate-form.php) | Обертывание правил Respect в DTO, чтение ошибок «Result» | нет | @@ЛИНИЯ@@
+Реализация `Yiisoft\Translator\MessageFormatterInterface`, подставляющая
+собственный плейсхолдер-синтаксис Respect `{{param}}` (не ICU). Зарегистрируйте
+его на `Yiisoft\Translator\CategorySource` — см. [DI-конфигурация](#di-конфигурация-yii3).
+
+## Безопасность
+
+- Никакой пользовательский ввод никогда не интерполируется во что-либо
+  исполняемое — пакет только перекладывает данные между двумя структурами
+  результата валидации (дерево `Result` Respect и `Result` Yii3); он не выполняет
+  I/O, SQL или shell-доступ.
+- `RespectMessageFormatter` делает только строковую подстановку `{{key}}`
+  (`strtr()`) — никогда `eval`/`preg_replace` с модификатором `/e` и подобное.
+
+## Примеры
+
+См. [examples/](examples/) — запускаемый скрипт.
+
+| Скрипт | Показывает | Нужен сервер? |
+|--------|-------|:-------------:|
+| [`validate-form.php`](examples/validate-form.php) | Обёртывание правил Respect на DTO, чтение ошибок `Result` | нет |
+
 ## Разработка
-На хосте нет PHP/Composer — запустите в Docker через образ `composer:2`:
+
+На хосте нет PHP/Composer — запускайте через Docker-образ `composer:2`:
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app composer:2 composer install
@@ -196,7 +238,8 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer build
 docker run --rm -v "$PWD":/app -w /app composer:2 composer cs:fix
 docker run --rm -v "$PWD":/app -w /app composer:2 composer test
 ```
-Или с помощью Make:
+
+Или через Make:
 
 ```bash
 make install
@@ -204,7 +247,11 @@ make build
 make cs-fix
 make test
 ```
-CI запускает `composer build` только на PHP 8.5 — для `respect/validation` требуется
- `php: >=8.5`, поэтому обычная матрица 8.3/8.4/8.5 к этому пакету не применима. @@ЛИНИЯ@@
+
+CI запускает `composer build` только на PHP 8.5 — `respect/validation` требует
+`php: >=8.5`, поэтому стандартная матрица 8.3/8.4/8.5 к этому пакету не
+применима.
+
 ## Лицензия
-[BSD-3-пункт](LICENSE.md)
+
+[BSD-3-Clause](LICENSE.md)
