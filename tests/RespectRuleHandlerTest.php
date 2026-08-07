@@ -10,6 +10,7 @@ use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Yii3RespectValidation\RespectMessageFormatter;
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Rasuvaeff\Yii3RespectValidation\RespectRuleHandler;
+use Respect\Validation\Result as RespectResult;
 use Respect\Validation\Validator as RespectValidator;
 use Respect\Validation\Validators\AllOf;
 use Respect\Validation\Validators\Between;
@@ -198,6 +199,38 @@ final class RespectRuleHandlerTest
     }
 
     #[Property(runs: 200)]
+    public function collectFailuresCountIsBoundedByAdjacencyChainDepth(mixed $value, int $validatorIndex): void
+    {
+        $validator = (self::adjacencyValidatorPool()[$validatorIndex])();
+        $rule = new RespectRule($validator);
+
+        $result = $this->handler->validate($value, $rule, new ValidationContext());
+        $respectResult = $validator->evaluate($value);
+
+        $actualFailures = count($result->getErrors());
+        $minPossibleFailures = self::countChainEndFailures($respectResult);
+        $maxPossibleFailures = self::countAllFailingTerminalNodes($respectResult);
+
+        Assert::true($actualFailures >= $minPossibleFailures);
+        Assert::true($actualFailures <= $maxPossibleFailures);
+
+        foreach ($result->getErrorMessages() as $message) {
+            Assert::true($message !== '');
+        }
+    }
+
+    /**
+     * @return array<string, ArbitraryInterface>
+     */
+    public static function collectFailuresCountIsBoundedByAdjacencyChainDepthGenerators(): array
+    {
+        return [
+            'value' => self::valueGenerator(),
+            'validatorIndex' => Gen::intBetween(0, count(self::adjacencyValidatorPool()) - 1),
+        ];
+    }
+
+    #[Property(runs: 200)]
     public function eachValuePathMatchesFailingKeys(array $items): void
     {
         $rule = new RespectRule(new Each(new IntType()));
@@ -234,6 +267,75 @@ final class RespectRuleHandlerTest
                 0,
                 6,
             ),
+        ];
+    }
+
+    /**
+     * Independent lower bound for {@see RespectRuleHandler}'s error count: follows the same
+     * `children`/`adjacent` structural links `collectFailures()` walks, but - unlike it - never
+     * inspects {@see RespectResult::hasCustomTemplate()}, so it cannot surface a chain wrapper's
+     * own fragment message. It always resolves an adjacency chain down to its final link.
+     */
+    private static function countChainEndFailures(RespectResult $node): int
+    {
+        if ($node->hasPassed) {
+            return 0;
+        }
+
+        if ($node->children !== []) {
+            $count = 0;
+            foreach ($node->children as $child) {
+                $count += self::countChainEndFailures($child);
+            }
+
+            return $count;
+        }
+
+        if ($node->adjacent instanceof RespectResult) {
+            return self::countChainEndFailures($node->adjacent);
+        }
+
+        return 1;
+    }
+
+    /**
+     * Independent upper bound for {@see RespectRuleHandler}'s error count: counts every failing
+     * node with no `children` along the way, including every link of an adjacency chain, as if
+     * `hasCustomTemplate()` were always true.
+     */
+    private static function countAllFailingTerminalNodes(RespectResult $node): int
+    {
+        if ($node->hasPassed) {
+            return 0;
+        }
+
+        if ($node->children !== []) {
+            $count = 0;
+            foreach ($node->children as $child) {
+                $count += self::countAllFailingTerminalNodes($child);
+            }
+
+            return $count;
+        }
+
+        $count = 1;
+        if ($node->adjacent instanceof RespectResult) {
+            $count += self::countAllFailingTerminalNodes($node->adjacent);
+        }
+
+        return $count;
+    }
+
+    /**
+     * @return list<Closure(): RespectValidator>
+     */
+    private static function adjacencyValidatorPool(): array
+    {
+        return [
+            static fn(): RespectValidator => new Length(new Between(1, 5)),
+            static fn(): RespectValidator => new AllOf(new StringType(), new Length(new Between(1, 5))),
+            static fn(): RespectValidator => new AllOf(new Length(new Between(1, 5)), new Each(new IntType())),
+            static fn(): RespectValidator => new Each(new Length(new Between(1, 3))),
         ];
     }
 
