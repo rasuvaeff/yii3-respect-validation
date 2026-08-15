@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3RespectValidation\Tests;
 
 use Rasuvaeff\PropertyTesting\ArbitraryInterface;
+use Rasuvaeff\PropertyTesting\Classify;
 use Rasuvaeff\PropertyTesting\Gen;
 use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Yii3RespectValidation\RespectMessageFormatter;
@@ -147,8 +148,15 @@ final class RespectRuleHandlerTest
         $rule = new RespectRule($validator);
 
         $result = $this->handler->validate($value, $rule, new ValidationContext());
+        $passed = $validator->evaluate($value)->hasPassed;
 
-        Assert::same($result->isValid(), $validator->evaluate($value)->hasPassed);
+        // An adapter that returned a constant would satisfy this property on
+        // whichever side the value generator happens to favour. Both have to
+        // be reached for the equivalence to mean anything.
+        Classify::cover($passed, 'respect accepts the value', 15.0);
+        Classify::cover(!$passed, 'respect rejects the value', 15.0);
+
+        Assert::same($result->isValid(), $passed);
     }
 
     /**
@@ -180,6 +188,16 @@ final class RespectRuleHandlerTest
             }
         }
 
+        // A floor rather than a share. With 2-4 leaves drawn from three
+        // mutually exclusive type validators, every leaf passing needs them
+        // all to be the same validator and the value to match it — about 3%
+        // of runs, and AllOf's two-validator minimum means the case cannot be
+        // made more common without changing what is tested. The gate is here
+        // to catch the branch becoming unreachable, not to pin a number.
+        Classify::cover($expectedFailures === 0, 'every leaf passes', 1.0);
+        Classify::cover($expectedFailures > 0, 'at least one leaf fails', 40.0);
+        Classify::when($leaves === [], 'empty AllOf');
+
         Assert::same(count($result->getErrors()), $expectedFailures);
 
         foreach ($result->getErrorMessages() as $message) {
@@ -194,6 +212,9 @@ final class RespectRuleHandlerTest
     {
         return [
             'value' => self::valueGenerator(),
+            // Two leaves minimum: Respect's AllOf takes at least two
+            // validators, so a one-element draw is a TypeError rather than a
+            // smaller case.
             'leafIndices' => Gen::arrayOf(Gen::intBetween(0, count(self::leafValidatorPool()) - 1), 2, 4),
         ];
     }
@@ -248,6 +269,9 @@ final class RespectRuleHandlerTest
         foreach ($result->getErrors() as $error) {
             $actualKeys[] = $error->getValuePath()[0] ?? null;
         }
+
+        Classify::cover($expectedFailingKeys === [], 'every item is an int', 10.0);
+        Classify::cover($expectedFailingKeys !== [], 'at least one item fails', 40.0);
 
         sort($expectedFailingKeys);
         sort($actualKeys);
