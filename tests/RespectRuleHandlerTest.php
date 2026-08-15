@@ -188,7 +188,13 @@ final class RespectRuleHandlerTest
             }
         }
 
-        Classify::cover($expectedFailures === 0, 'every leaf passes', 5.0);
+        // A floor rather than a share. With 2-4 leaves drawn from three
+        // mutually exclusive type validators, every leaf passing needs them
+        // all to be the same validator and the value to match it — about 3%
+        // of runs, and AllOf's two-validator minimum means the case cannot be
+        // made more common without changing what is tested. The gate is here
+        // to catch the branch becoming unreachable, not to pin a number.
+        Classify::cover($expectedFailures === 0, 'every leaf passes', 1.0);
         Classify::cover($expectedFailures > 0, 'at least one leaf fails', 40.0);
         Classify::when($leaves === [], 'empty AllOf');
 
@@ -206,6 +212,9 @@ final class RespectRuleHandlerTest
     {
         return [
             'value' => self::valueGenerator(),
+            // Two leaves minimum: Respect's AllOf takes at least two
+            // validators, so a one-element draw is a TypeError rather than a
+            // smaller case.
             'leafIndices' => Gen::arrayOf(Gen::intBetween(0, count(self::leafValidatorPool()) - 1), 2, 4),
         ];
     }
