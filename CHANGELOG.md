@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- Mutation testing now counts uncovered code (`--with-uncovered`, template mutator settings): overall MSI 97% against `minMsi` 85. Added tests for message-formatter stringification (`Stringable`, arrays, objects), `RespectRule` option normalization (enums, objects, non-string keys, non-array parameters) and handler parameter normalization, `input`/`subject` parameters, nested value paths and unknown-template fallback. No src changes.
+
 ## 1.0.1 — 2026-07-03
 
 - Fix CI `Prefer lowest` job: pin dev-dependency floors (`amphp/*`,

@@ -11,6 +11,8 @@ use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Yii3RespectValidation\RespectMessageFormatter;
 use Rasuvaeff\Yii3RespectValidation\RespectRule;
 use Rasuvaeff\Yii3RespectValidation\RespectRuleHandler;
+use Rasuvaeff\Yii3RespectValidation\Tests\Support\StubValidator;
+use Respect\Validation\Path;
 use Respect\Validation\Result as RespectResult;
 use Respect\Validation\Validator as RespectValidator;
 use Respect\Validation\Validators\AllOf;
@@ -132,6 +134,57 @@ final class RespectRuleHandlerTest
 
         Assert::false($result->isValid());
         Assert::same($result->getErrorMessages(), ['Значение «Username» должно быть строкой']);
+    }
+
+    public function errorParametersCarrySubjectAndInput(): void
+    {
+        $result = $this->handler->validate(123, new RespectRule(new StringType()), new ValidationContext());
+
+        Assert::same($result->getErrors()[0]->getParameters()['input'], 123);
+        Assert::same($result->getErrors()[0]->getParameters()['subject'], 'Value');
+    }
+
+    public function normalizesFailureParametersForTheMessage(): void
+    {
+        $stringable = new class implements \Stringable {
+            #[\Override]
+            public function __toString(): string
+            {
+                return 'str';
+            }
+        };
+        $rule = new RespectRule(new StubValidator(
+            resultParameters: [
+                0 => 'dropped',
+                'scalar' => 7,
+                'obj' => $stringable,
+                'list' => [1],
+                'plain' => new \stdClass(),
+                'nothing' => null,
+            ],
+            template: 'custom {{scalar}} {{obj}} [{{list}}] [{{plain}}]',
+        ));
+
+        $result = $this->handler->validate('x', $rule, new ValidationContext());
+        $parameters = $result->getErrors()[0]->getParameters();
+
+        Assert::same($result->getErrorMessages(), ['custom 7 str [] []']);
+        Assert::same($parameters['scalar'], 7);
+        Assert::same($parameters['obj'], 'str');
+        Assert::null($parameters['list']);
+        Assert::null($parameters['plain']);
+        Assert::null($parameters['nothing']);
+        Assert::same($parameters['subject'], 'Value');
+        Assert::false(array_key_exists(0, $parameters));
+    }
+
+    public function buildsTheFullValuePathFromNestedRespectPaths(): void
+    {
+        $rule = new RespectRule(new StubValidator(path: new Path('b', new Path('a'))));
+
+        $result = $this->handler->validate('x', $rule, new ValidationContext());
+
+        Assert::same($result->getErrors()[0]->getValuePath(), ['a', 'b']);
     }
 
     public function throwsOnUnexpectedRule(): void

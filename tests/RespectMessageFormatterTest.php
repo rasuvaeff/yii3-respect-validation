@@ -50,5 +50,14 @@ final class RespectMessageFormatterTest
         yield 'int' => [42, '42'];
         yield 'float' => [1.5, '1.5'];
         yield 'string' => ['abc', 'abc'];
+        yield 'stringable' => [new class implements \Stringable {
+            #[\Override]
+            public function __toString(): string
+            {
+                return 'stringable';
+            }
+        }, 'stringable'];
+        yield 'array' => [[1, 2], ''];
+        yield 'plain object' => [new \stdClass(), ''];
     }
 }
