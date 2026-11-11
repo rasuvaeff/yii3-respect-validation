@@ -54,7 +54,7 @@
         "spatie/array-to-xml": "^3.4",
         "testo/bridge-infection": "^0.1.6",
         "testo/testo": "^0.10.25",
-        "vimeo/psalm": "^6.16",
+        "vimeo/psalm": "^7.0",
         "yiisoft/translator-message-php": "^1.1"
     },
     "suggest": {
