@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- **Internal:** CI runs PHP 8.6 as a regular matrix entry: the job drops
+  `--ignore-platform-req` and runs the full 8.6 script (validate, normalize,
+  psalm, test). No user-facing change — the `>=8.5` contract already covers 8.6.
+
 - Mutation testing now counts uncovered code (`--with-uncovered`, template mutator settings): overall MSI 97% against `minMsi` 85. Added tests for message-formatter stringification (`Stringable`, arrays, objects), `RespectRule` option normalization (enums, objects, non-string keys, non-array parameters) and handler parameter normalization, `input`/`subject` parameters, nested value paths and unknown-template fallback. No src changes.
 
 ## 1.0.1 — 2026-07-03
