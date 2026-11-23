@@ -123,7 +123,7 @@ final class RespectRuleHandlerTest
         $translator = new Translator(locale: 'ru');
         $translator->addCategorySources(new CategorySource(
             'yii3-respect-validation',
-            new MessageSource(dirname(__DIR__) . '/messages'),
+            new MessageSource(__DIR__ . '/../messages'),
             new RespectMessageFormatter(),
         ));
 

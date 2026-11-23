@@ -49,7 +49,7 @@ final class RussianMessageCatalogTest
      */
     private function loadCatalog(): array
     {
-        return require dirname(__DIR__) . '/messages/ru/yii3-respect-validation.php';
+        return require __DIR__ . '/../messages/ru/yii3-respect-validation.php';
     }
 
     /**
@@ -57,7 +57,7 @@ final class RussianMessageCatalogTest
      */
     private function collectLiveTemplates(): array
     {
-        $dir = dirname(__DIR__) . '/vendor/respect/validation/src/Validators';
+        $dir = __DIR__ . '/../vendor/respect/validation/src/Validators';
         $templates = [];
 
         /** @var SplFileInfo $file */
