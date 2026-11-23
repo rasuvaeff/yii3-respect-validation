@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.0.2 — 2026-11-23
+
+- Require `yiisoft/validator` ^2.6.2 for the fix to [GHSA-c4w6-v59v-38v5](https://github.com/yiisoft/validator/security/advisories/GHSA-c4w6-v59v-38v5).
 
 - Mutation testing now counts uncovered code (`--with-uncovered`, template mutator settings): overall MSI 97% against `minMsi` 85. Added tests for message-formatter stringification (`Stringable`, arrays, objects), `RespectRule` option normalization (enums, objects, non-string keys, non-array parameters) and handler parameter normalization, `input`/`subject` parameters, nested value paths and unknown-template fallback. No src changes.
 
